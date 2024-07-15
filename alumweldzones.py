@@ -8,6 +8,12 @@ material_list = {
                         "Ftyw":15.0, 
                         "E":10100, 
                         "nu":0.33, 
+                        "rho":0.1},
+                    "5052-H32": {
+                        "Fty":23.0, 
+                        "Ftyw":9.5, 
+                        "E":10100, 
+                        "nu":0.33, 
                         "rho":0.1}
                 }
 
@@ -81,9 +87,13 @@ def define_geom_rect(d, b, t, r_out, weld_zones, weld_radius, grade):
     return combined_for_visualization, section
 
 
-def get_stress_envelope(analyzed_section):
+def get_stress_envelope(analyzed_section, design_method, factor):
     results = analyzed_section.get_stress()
     results_dict = {}
+    if design_method == "ASD":
+        reduction_factor = 1/factor
+    elif design_method == "LRFD":
+        reduction_factor = factor
     for mat in results:
         mat_name = mat["material"]
         mat_short_name = mat_name.replace(" - Welded", "").replace(" - Unwelded", "")
@@ -99,6 +109,6 @@ def get_stress_envelope(analyzed_section):
                 max_stress = stress_array.max()
             if stress_array.min() < min_stress:
                 min_stress = stress_array.min()
-        stress_ratio = max(max_stress, abs(min_stress)) / Fy
-        results_dict.update({mat_name:{"max":max_stress, "min":min_stress, "Fy":Fy}, "SR":stress_ratio})
+        stress_ratio = max(max_stress, abs(min_stress)) / (Fy*reduction_factor)
+        results_dict.update({mat_name:{"max":max_stress, "min":min_stress, "Fy":Fy, "SR":stress_ratio}})
     return results_dict

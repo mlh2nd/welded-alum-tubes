@@ -3,10 +3,13 @@ import alumweldzones as alw
 
 
 st.title("Partially Welded Aluminum Tube Calculator")
-st.markdown("This app calculates the section properties of an aluminum tube. \
-            Weld-affected zones may be defined to determine strength of partially welded sections, such as guardrails welded to post supports.")
-st.markdown("Planned features:")
-st.markdown("* Section Property Report\n* ADM ASD and LRFD checks\n* Support for round and arbitrary sections")
+st.markdown("This app performs calculations on aluminum tube sections. \
+            Weld-affected zones may be defined to determine strength of partially welded sections, such as guardrails welded to supports on one side.\
+            In such cases, treating the entire section as welded may result in an excessively conservative design, while assuming the entire section is \
+            unwelded may be unconservative. The app separates out the member stresses by welded and unwelded zones to enable more accurate analysis.")
+st.markdown("Planned future additions and improvements:")
+st.markdown("* Section property report for both entire section and unwelded portion only\n* Aluminum Association _Aluminum Design Manual_ checks\n* Support\
+             for round and arbitrary sections\n* Support for metric units\n* More aluminum alloys")
 
 st.header("Tube and Weld Properties")
 #user_units = st.selectbox("Units", ["kips, inches", "Newtons, millimeters"])
@@ -29,8 +32,8 @@ if tube_type == "Rectangular":
     with col1:
         d = st.number_input(f"Tube Depth ({length_unit})", min_value=0.0, value=2.0)
         b = st.number_input(f"Tube Width ({length_unit})", min_value=0.0, value=3.0)
-        t = st.number_input(f"Wall Thickness ({length_unit})", min_value=0.0, value=0.125, step = 0.001)
-        r_out = st.number_input(f"Corner Radius ({length_unit})", min_value=0.0, value=0.05, step = 0.001)
+        t = st.number_input(f"Wall Thickness ({length_unit})", min_value=0.0, value=0.125, step = 0.001, format="%f")
+        r_out = st.number_input(f"Corner Radius ({length_unit})", min_value=0.0, value=0.05, step = 0.001, format="%f")
     with col2:
         num_zones = st.number_input(f"Number of Weld-Affected Zones", min_value=0, value=1)
         weld_radius = st.number_input(f"Zone Radius ({length_unit}) (Typically 1 inch)", min_value=0.0, value=1.0)
@@ -56,6 +59,7 @@ st.header("Stress Analysis")
 col4, col5 = st.columns([0.25, 0.75])
 
 with col4:
+    st.write("Note: All force inputs should reflect _factored_ values if using LRFD.")
     normal_force = st.number_input(f"Normal Force ({force_unit})")
     shear_x = st.number_input(f"Horizontal Shear ({force_unit})")
     shear_y = st.number_input(f"Vertical Shear ({force_unit})")
@@ -74,19 +78,17 @@ with col5:
         design_method = st.radio("Design Method", ["ASD", "LRFD"])
     with col5b:
         if design_method == "ASD":
-            reduction_factor = 1/st.number_input("Safety Factor Ω", value=1.65, min_value = 1.0)
+            factor = st.number_input("Safety Factor Ω", value=1.65, min_value = 1.0)
         else: 
-            reduction_factor = st.number_input("Strength Factor φ", value=0.90, max_value = 1.0)
-    stress_envelope = alw.get_stress_envelope(analyzed_section)
+            factor = st.number_input("Strength Factor φ", value=0.90, max_value = 1.0)
+    stress_envelope = alw.get_stress_envelope(analyzed_section, design_method, factor)
     for weld_condition in stress_envelope:
         stress_envelope[weld_condition][f"Max Stress ({stress_unit})"] = stress_envelope[weld_condition].pop("max")
         stress_envelope[weld_condition][f"Min Stress ({stress_unit})"] = stress_envelope[weld_condition].pop("min")
         if design_method == "ASD":
-            stress_envelope[weld_condition][f"Fy/Ω ({stress_unit})"] = stress_envelope[weld_condition].pop("Fy")*reduction_factor
-            stress_ratio = stress_envelope[weld_condition][f"Fy/Ω ({stress_unit})"]/max(stress_envelope[weld_condition][f"Max Stress ({stress_unit})"], 
-                                                                                        abs(stress_envelope[weld_condition][f"Min Stress ({stress_unit})"]))
+            stress_envelope[weld_condition][f"Fy/Ω ({stress_unit})"] = stress_envelope[weld_condition].pop("Fy")/factor
         else:
-            stress_envelope[weld_condition][f"φFy ({stress_unit})"] = stress_envelope[weld_condition].pop("Fy")*reduction_factor
-        stress_envelope[weld_condition].update({"Stress Ratio":stress_ratio})
-
+            stress_envelope[weld_condition][f"φFy ({stress_unit})"] = stress_envelope[weld_condition].pop("Fy")*factor
+        stress_envelope[weld_condition]["Stress Ratio"] = stress_envelope[weld_condition].pop("SR")
+    st.markdown("#### Stress Envelope Summary for All Stresses")
     st.table(stress_envelope)
