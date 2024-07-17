@@ -5,11 +5,11 @@ import alumweldzones as alw
 st.title("Partially Welded Aluminum Tube Calculator")
 st.markdown("This app performs calculations on aluminum tube sections. \
             Weld-affected zones may be defined to determine strength of partially welded sections, such as guardrails welded to supports on one side.\
-            In such cases, treating the entire section as welded may result in an excessively conservative design, while assuming the entire section is \
+            In such cases, treating the entire section as weld-affected may result in an excessively conservative design, while assuming the entire section is \
             unwelded may be unconservative. The app separates out the member stresses by welded and unwelded zones to enable more accurate analysis.")
 st.markdown("Planned future additions and improvements:")
 st.markdown("* Section property report for both entire section and unwelded portion only\n* Aluminum Association _Aluminum Design Manual_ checks\n* Support\
-             for round and arbitrary sections\n* Support for metric units\n* More aluminum alloys")
+             for round and arbitrary sections\n* Support for metric units\n* More aluminum alloys and tempers")
 
 st.header("Tube and Weld Properties")
 #user_units = st.selectbox("Units", ["kips, inches", "Newtons, millimeters"])
